@@ -175,12 +175,11 @@ def eta_ss(x, y, L, a, b, eta0 = 0):
     eta = eta0 + tau0*f0*L/(np.pi*gamma*rho*H*g)*(term1+term2)
     return eta
     
-if __name__ == "__main__":
-    L = 1e6
-    d = 25e3
-    x_1D = np.arange(0, L+0.1, d/2)
+def plot_analytical(L, d):
+    x_1D = np.arange(0, L+0.1, d)
+    y_1D = np.arange(L, 0-0.1, -d)
     #setting up 2D arrays for X and Y
-    XX, YY = np.meshgrid(x_1D, x_1D)
+    XX, YY = np.meshgrid(x_1D, y_1D)
     
     #calculating analytical solution
     a, b = calc_ab(L)
@@ -193,7 +192,7 @@ if __name__ == "__main__":
     data = [U, V, eta]
     
     fig, axs = plt.subplots(1, 3, figsize = (16, 7), sharey = True)
-    extent = [0, L, L, 0]
+    extent = [0, L, 0, L]
     axs[0].set_ylabel('Y')
     
     for i in range(3):

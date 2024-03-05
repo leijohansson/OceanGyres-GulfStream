@@ -10,8 +10,6 @@ from scipy.interpolate import RegularGridInterpolator as interpolater
 from functions import *
 #%%
 #start with eta
-
-
 def SL_eta(test):
     X = test.x_eta
     Y = test.y_eta

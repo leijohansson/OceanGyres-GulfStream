@@ -58,84 +58,6 @@ class model:
         self.energy = energy
         if self.energy:
             self.E_ts = np.zeros((self.nt+1))
-
-    def run(self):
-        for i in range(int(self.nt/2+0.5)):
-            self.FB_time()
-            
-    def FB_time(self, energy = False):
-        #ddx, ddy calculate the x and y derivatives
-        
-        #vu_interp interpolates u onto the v grid and vice versa
-        
-        #crop_x and crop_y remove the columns and rows on the edges 
-        #respectively
-        
-        #moves two timesteps
-        self.eta -=  H*self.dt*(ddx(self.u, self.d)+ddy(self.v, self.d))
-        eta_x, eta_y = ddx(self.eta, self.d), ddy(self.eta, self.d)
-        self.u[:, 1:-1] += self.dt*(self.f_u*vu_interp(self.v) - g*eta_x - 
-                                    gamma*crop_x(self.u) + self.taux/(rho*H))
-        self.v[1:-1, :] += self.dt*(-self.f_v*vu_interp(self.u) - g*eta_y - 
-                                    gamma*crop_y(self.v) + self.tauy/(rho*H))
-        self.nt_count += 1
-        if self.energy: #would it be more efficient to define a different 
-                        #function to avoid if statements
-            self.E_ts[self.nt_count] = self.calcE()
-        
-        self.eta -=  H*self.dt*(ddx(self.u, self.d)+ddy(self.v, self.d))
-        eta_x, eta_y = ddx(self.eta, self.d), ddy(self.eta, self.d)
-        self.v[1:-1, :] += self.dt*(-self.f_v*vu_interp(self.u) - g*eta_y - 
-                                    gamma*crop_y(self.v) + self.tauy/(rho*H))
-        self.u[:, 1:-1] += self.dt*(self.f_u*vu_interp(self.v) - g*eta_x - 
-                                    gamma*crop_x(self.u) + self.taux/(rho*H))
-        self.nt_count += 1
-        
-        if self.energy:
-            self.E_ts[self.nt_count] = self.calcE()
-    def FB_time_one(self, energy = False):
-        #ddx, ddy calculate the x and y derivatives
-        
-        #vu_interp interpolates u onto the v grid and vice versa
-        
-        #crop_x and crop_y remove the columns and rows on the edges 
-        #respectively
-        
-        #moves two timesteps
-        if self.nt_count%2 == 0:
-            self.eta -=  H*self.dt*(ddx(self.u, self.d)+ddy(self.v, self.d))
-            eta_x, eta_y = ddx(self.eta, self.d), ddy(self.eta, self.d)
-            self.u[:, 1:-1] += self.dt*(self.f_u*vu_interp(self.v) - g*eta_x - 
-                                        gamma*crop_x(self.u) + self.taux/(rho*H))            
-            
-            self.v[1:-1, :] += self.dt*(-self.f_v*vu_interp(self.u) - g*eta_y - 
-                                        gamma*crop_y(self.v) + self.tauy/(rho*H))
-            print(-(self.f_v*vu_interp(self.u))[0,0])
-            print(- g*eta_y[0,0])
-            print(-gamma*crop_y(self.v)[0,0])
-            
-            self.nt_count += 1
-        
-        else:
-            self.eta -=  H*self.dt*(ddx(self.u, self.d)+ddy(self.v, self.d))
-            eta_x, eta_y = ddx(self.eta, self.d), ddy(self.eta, self.d)
-            self.v[1:-1, :] += self.dt*(-self.f_v*vu_interp(self.u) - g*eta_y - 
-                                        gamma*crop_y(self.v) + self.tauy/(rho*H))
-            self.u[:, 1:-1] += self.dt*(self.f_u*vu_interp(self.v) - g*eta_x - 
-                                        gamma*crop_x(self.u) + self.taux/(rho*H))
-            self.nt_count += 1
-             
-        
-    def SL(self):
-        xstar_u = self.x_u - self.u*self.dt/2
-        #find u at xstar_u? at the last time step?
-        #interpolator - LinearNDInterpolator (Scipy)
-        
-        
-        #interpolate value of u at x_star at that value of y? gridy or ystar?
-        # ystar = y_v - self.v*self.dt/2
-        #interpolate value of v at y_star at that value of x? gridx or xstar from above?
-        #im confused
     
     def calcE(self):
         '''
@@ -159,6 +81,7 @@ class model:
 
         '''
         return self.eta[-1, int(self.eta.shape[0]/2+0.5)]
+    
     def plot_uva(self):
         '''
         2D Plots of U, V and eta
@@ -172,7 +95,7 @@ class model:
         data = [self.u, self.v, self.eta]
         
         fig, axs = plt.subplots(1, 3, figsize = (16, 7), sharey = True)
-        extent = [0, self.L, self.L, 0]
+        extent = [0, self.L, 0, self.L]
         axs[0].set_ylabel('Y')
         
         for i in range(3):

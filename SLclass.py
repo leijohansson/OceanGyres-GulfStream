@@ -9,7 +9,7 @@ Parameters can be changed at the bottom of the file
 '''
 
 class SL(model):
-    def __init__(self, L, d, dt, nt):\
+    def __init__(self, L, d, dt, nt):
         #initialise model
         super().__init__(L, d, dt, nt)
         #setup interp functions here
@@ -219,7 +219,3 @@ class SL(model):
         # for i in range(self.nt):
             self.twosteps()
 
-if __name__ == 'main':
-    semi = SL(1e6, 25e3, 160, 540)
-    semi.run()
-    semi.plot_uva()
