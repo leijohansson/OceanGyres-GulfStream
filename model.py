@@ -5,6 +5,7 @@ Created on Wed Feb 28 14:08:02 2024
 @author: Linne
 """
 import numpy as np
+# import jax.numpy as np
 from Params import *
 from functions import *
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ import seaborn as sns
 sns.set_context('notebook')
 
 class model:
-    def __init__(self, L, d, dt, nt, scheme = 'FB', energy = False):
+    def __init__(self, L, d, dt, nt, energy = False):
         #setting model parameters
         self.L = L
         self.d = d

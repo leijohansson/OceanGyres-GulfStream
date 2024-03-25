@@ -5,7 +5,10 @@ Created on Thu Feb 29 11:08:56 2024
 @author: Linne
 """
 import numpy as np
+# import jax.numpy as np
 from Params import *
+from numba import njit
+
 def crop_x(arr):
     '''
     Removes columns corresponding to first and last x value (x-values at the 
@@ -23,6 +26,7 @@ def crop_x(arr):
 
     '''
     return arr[:, 1:-1]
+
 def crop_y(arr):
     '''
     Removes columns corresponding to first and last y value (y-values at the 

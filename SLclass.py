@@ -2,6 +2,8 @@ from scipy.interpolate import RegularGridInterpolator as interpolater
 from Params import *
 from model import model
 from functions import *
+# import jax.numpy as np
+
 '''
 Class for semi lagrange
 Running the file runs the model for one day
@@ -21,24 +23,10 @@ class SL(model):
         Set up interpolators for all variables needed
 
         '''
-        self.find_eta = interpolater([self.y_u1d, self.x_v1d], self.eta, 
-                                     bounds_error = False, fill_value = None)
-        self.find_u = interpolater([self.y_u1d, self.x_u1d], self.u, 
-                                   bounds_error=False, fill_value = None)
-        self.find_v = interpolater([self.y_v1d, self.x_v1d], self.v, 
-                                   bounds_error=False, fill_value = None)
-        self.detady= ddy(self.eta, self.d)
-        self.detadx= ddx(self.eta, self.d)
-        self.find_detady = interpolater((self.y_v1d[1:-1], self.x_v1d), 
-                                        self.detady, bounds_error=False, 
-                                        fill_value = None)
-        self.find_detadx = interpolater((self.y_u1d, self.x_u1d[1:-1]), 
-                                        self.detadx, bounds_error=False, 
-                                        fill_value = None)
         self.update_eta_interps()
         self.update_u_interps()
         self.update_v_interps()
-        
+    
     def update_eta_interps(self):
         '''
         Updates all interpolators that depend on eta
@@ -65,8 +53,8 @@ class SL(model):
         self.find_dudx = interpolater((self.y_u1d, self.x_v1d), self.dudx, 
                                        bounds_error=False, fill_value = None)
         # self.find_detadx = interpolater((self.y_u1d, self.x_u1d[1:-1]), 
-                                        # self.detadx, bounds_error=False, 
-                                        # fill_value = None)
+        #                                 self.detadx, bounds_error=False, 
+        #                                 fill_value = None)
     def update_v_interps(self):
         '''
         Updates all interpolatoors that depend on v
@@ -78,8 +66,8 @@ class SL(model):
         self.find_dvdy = interpolater((self.y_u1d, self.x_v1d), self.dvdy, 
                                       bounds_error=False, fill_value = None)
         # self.find_detady = interpolater((self.y_v1d[1:-1], self.x_v1d), 
-                                        # self.detady, bounds_error=False, 
-                                        # fill_value = None)
+        #                                 self.detady, bounds_error=False, 
+        #                                 fill_value = None)
     def reset_oldwind(self):
         '''
         Set old u and v interpolators to current u and v interpolators
@@ -140,8 +128,8 @@ class SL(model):
         forcing_d = dudx_d + dvdy_d
         forcing_grid = self.dudx + self.dvdy
         
-        self.eta = eta_d - 0.5*self.dt*H*(forcing_d + forcing_grid)
-        # self.eta = eta_d - self.dt*H*forcing_grid
+        # self.eta = eta_d - 0.5*self.dt*H*(forcing_d + forcing_grid)
+        self.eta = eta_d - self.dt*H*forcing_grid
         self.update_eta_interps()
         
         
@@ -154,8 +142,8 @@ class SL(model):
         x_d, y_d = self.find_departure_points(crop_x(self.x_u), 
                                               crop_x(self.y_u))
         pos_d = (y_d, x_d)
-        u_d = self.find_u(pos_d)
-        v_d = self.find_v(pos_d)
+        u_d = self.find_oldu(pos_d)
+        v_d = self.find_oldv(pos_d)
 
         detadx_d = self.find_detadx(pos_d)
         f_d= f0+beta*y_d
@@ -164,8 +152,8 @@ class SL(model):
         forcing_grid = self.f_u*vu_interp(self.v) - g*self.detadx - \
             gamma*crop_x(self.u) + self.taux/(rho*H)
         
-        self.u[:, 1:-1] = u_d + 0.5*self.dt*(forcing_d + forcing_grid)
-        # self.u[:, 1:-1] = u_d + self.dt*forcing_grid
+        # self.u[:, 1:-1] = u_d + 0.5*self.dt*(forcing_d + forcing_grid)
+        self.u[:, 1:-1] = u_d + self.dt*forcing_grid
         self.update_u_interps()
         
     def update_v(self):
@@ -177,8 +165,8 @@ class SL(model):
         x_d, y_d = self.find_departure_points(crop_y(self.x_v), 
                                               crop_y(self.y_v))
         pos_d = (y_d, x_d)
-        u_d = self.find_u(pos_d)
-        v_d = self.find_v(pos_d)
+        u_d = self.find_oldu(pos_d)
+        v_d = self.find_oldv(pos_d)
 
         detady_d= self.find_detady(pos_d)
         f_d= f0+beta*y_d
@@ -186,8 +174,8 @@ class SL(model):
         forcing_grid =- self.f_v*vu_interp(self.u) - g*self.detady - \
             gamma*crop_y(self.v) + self.tauy/(rho*H)
         
-        self.v[1:-1, :] = v_d + 0.5*self.dt*(forcing_d + forcing_grid)
-        # self.v[1:-1, :] = v_d + self.dt*forcing_grid
+        # self.v[1:-1, :] = v_d + 0.5*self.dt*(forcing_d + forcing_grid)
+        self.v[1:-1, :] = v_d + self.dt*forcing_grid
 
         self.update_v_interps()
     
@@ -205,8 +193,8 @@ class SL(model):
         
         self.reset_oldwind()
         self.update_eta()
-        self.update_u()
         self.update_v()
+        self.update_u()
         self.nt_count +=1
 
     

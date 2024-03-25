@@ -5,6 +5,7 @@ Created on Tue Mar  5 21:24:02 2024
 @author: Linne
 """
 from model import *
+from numba import jit, cuda
 from scipy.interpolate import RegularGridInterpolator as interpolater
 from functions import *
 from Params import *
@@ -14,9 +15,16 @@ class FB(model):
         #initialise model
         super().__init__(L, d, dt, nt, energy = energy)
     def run(self):
+        '''
+        Runs FB_time scheme for nt timesteps
+
+        Returns
+        -------
+        None.
+
+        '''
         for i in range(int(self.nt/2+0.5)):
             self.FB_time()
-            
     def FB_time(self, energy = False):
         #ddx, ddy calculate the x and y derivatives
         
@@ -47,6 +55,7 @@ class FB(model):
         
         if self.energy:
             self.E_ts[self.nt_count] = self.calcE()
+            
     def FB_time_one(self, energy = False):
         #ddx, ddy calculate the x and y derivatives
         
@@ -56,25 +65,13 @@ class FB(model):
         #respectively
         
         #moves two timesteps
-        if self.nt_count%2 == 0:
-            self.eta -=  H*self.dt*(ddx(self.u, self.d)+ddy(self.v, self.d))
-            eta_x, eta_y = ddx(self.eta, self.d), ddy(self.eta, self.d)
-            self.u[:, 1:-1] += self.dt*(self.f_u*vu_interp(self.v) - g*eta_x - 
-                                        gamma*crop_x(self.u) + self.taux/(rho*H))            
-            
-            self.v[1:-1, :] += self.dt*(-self.f_v*vu_interp(self.u) - g*eta_y - 
-                                        gamma*crop_y(self.v) + self.tauy/(rho*H))
-            print(-(self.f_v*vu_interp(self.u))[0,0])
-            print(- g*eta_y[0,0])
-            print(-gamma*crop_y(self.v)[0,0])
-            
-            self.nt_count += 1
-        
-        else:
-            self.eta -=  H*self.dt*(ddx(self.u, self.d)+ddy(self.v, self.d))
-            eta_x, eta_y = ddx(self.eta, self.d), ddy(self.eta, self.d)
-            self.v[1:-1, :] += self.dt*(-self.f_v*vu_interp(self.u) - g*eta_y - 
-                                        gamma*crop_y(self.v) + self.tauy/(rho*H))
-            self.u[:, 1:-1] += self.dt*(self.f_u*vu_interp(self.v) - g*eta_x - 
-                                        gamma*crop_x(self.u) + self.taux/(rho*H))
-            self.nt_count += 1
+        self.eta -=  H*self.dt*(ddx(self.u, self.d)+ddy(self.v, self.d))
+        eta_x, eta_y = ddx(self.eta, self.d), ddy(self.eta, self.d)
+        self.u[:, 1:-1] += self.dt*(self.f_u*vu_interp(self.v) - g*eta_x - 
+                                    gamma*crop_x(self.u) + self.taux/(rho*H))
+        self.v[1:-1, :] += self.dt*(-self.f_v*vu_interp(self.u) - g*eta_y - 
+                                    gamma*crop_y(self.v) + self.tauy/(rho*H))
+        self.nt_count += 1
+        if self.energy: #would it be more efficient to define a different 
+                        #function to avoid if statements
+            self.E_ts[self.nt_count] = self.calcE()
