@@ -140,6 +140,13 @@ class model:
 
         extent = [self.d, self.L, self.L, self.d]
         plot = axc.imshow(self.eta, extent = extent)
+        u_eta = (self.u[:, 1:] + self.u[:, :-1])/2
+        v_eta = (self.v[1:, :] + self.v[:-1, :])/2
+
+        axc.streamplot(self.x_eta, np.flip(self.y_eta), -u_eta, v_eta, 
+                       density = 0.5, color = np.sqrt(u_eta**2 + v_eta**2),
+                       cmap = 'gray')
+
         axc.set_title('$\eta$')
         axc.set_xlabel('x, m')
         axc.set_ylabel('y, m')
