@@ -58,11 +58,8 @@ def make_L(n, dt, d):
     
     #adding diagonal term to L
     L += diag
-    
-    #finding inverse of L
-    L_inv = np.linalg.inv(L)
-    
-    return L_inv
+        
+    return L
 
 
 
@@ -259,7 +256,10 @@ f_u = np.concatenate((grid.f_u, grid.f_u[:, :2]), axis = 1)
 f_v = np.concatenate((grid.f_v, grid.f_v[:2, :]), axis = 0)
 
 #making L and finding the inverse
-L_inv = make_L(n, grid.dt, grid.d)
+L = make_L(n, grid.dt, grid.d)
+#finding inverse of L
+L_inv = np.linalg.inv(L)
+
 
 #setting old eta values
 u_old, v_old, eta_old = grid.u, grid.v, grid.eta
