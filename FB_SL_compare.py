@@ -11,14 +11,22 @@ import matplotlib.pyplot as plt
 
 start = time.time()
 day = 24*60*60
-ndays = 80
+ndays = 40
 N = int(day*ndays/160)+1
-# semi = SL(1e6, 25e3, 160, N)
-# semi.run()
-# semi.plot_uva()
+# N=5
+# semi = SL(1e6, 25e3, 160, N, method = 'cubic')
+semi.run()
+semi.plot_uva()
+plt.savefig('SL_cubic_SS.pdf', bbox_inches = 'tight')
+print(semi.calc_Ediff())
+print(time.time()-start)
+semi.plot_solution_diff()
+plt.savefig('SL_cubic_SS_Diffs.pdf', bbox_inches = 'tight')
 
-FBtime = FB(1e6, 25e3, 160, N)
-FBtime.run()
+# FBtime = FB(1e6, 25e3, 160, N)
+# FBtime.run()
+
+
 #%%
 FBtime.plot_uva()
 print(time.time()-start)

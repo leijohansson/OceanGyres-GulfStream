@@ -11,8 +11,9 @@ from functions import *
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
+from Analytical import *
 sns.set_context('notebook')
-
+sns.set_style('whitegrid')
 class model:
     def __init__(self, L, d, dt, nt, energy = False):
         #setting model parameters
@@ -107,7 +108,7 @@ class model:
         fig.suptitle(f'''Time = {np.round(self.nt*self.dt/day,0)} days
                      $\Delta t = {self.dt}$s, d = {self.d}m''')
             
-    def plot_1d(self):
+    def plot_1d(self, scheme = 'Forward-Backward', plot_analytical = True):
         fig = plt.figure(figsize = (15, 7))
         spec = gridspec.GridSpec(ncols=2, nrows=3, figure=fig, width_ratios = (2,2))
         axu = fig.add_subplot(spec[0, 0])
@@ -115,47 +116,106 @@ class model:
         axeta = fig.add_subplot(spec[2, 0])
         axc = fig.add_subplot(spec[:, 1])
 
+
+        a, b = calc_ab(self.L)
+        U = u_ss(self.x_u, self.y_u, self.L, a, b)
+        V = v_ss(self.x_v, self.y_v, self.L, a, b)
+        ETA = eta_ss(self.x_eta, self.y_eta, self.L, a, b, eta0 = self.eta0())
     
-        axu.plot(self.x_u1d, self.u[-1, :])
+        axu.plot(self.x_u1d, self.u[-1, :], label = scheme)
         axu.set_title('u at southern boundary')
         axu.set_ylabel('$u, ms^{-1}$')
         axu.set_xlabel('x, m')
         
+        if self.eta.shape[0]%2 == 0:
+            etamiddle = (self.eta[int(self.eta.shape[0]/2)] + \
+                         self.eta[int(self.eta.shape[0]/2)+1])/2
+            ETAmid = (ETA[int(self.eta.shape[0]/2)] + \
+                         ETA[int(self.eta.shape[0]/2)+1])/2
+        else:
+            etamiddle = self.eta[int(self.n/2+1), :]
+            ETAmid = ETA[int(self.n/2+1), :]
+        
+        if plot_analytical:        
+            axu.plot(self.x_u1d, U[-1, :], linestyle = '--', color = 'black', label = 'Analytical')
+            axv.plot(self.y_v1d, V[:, 0], linestyle = '--', color = 'black')
+            axeta.plot(self.x_v1d, ETAmid, linestyle = '--', color = 'black')
+            axu.legend()
+
+
         
         axv.plot(self.y_v1d, self.v[:, 0])
         axv.set_title('v at western boundary')
         axv.set_ylabel('$v, ms^{-1}$')
         axv.set_xlabel('y, m')
 
-        if self.eta.shape[0]%2 == 0:
-            etamiddle = (self.eta[int(self.eta.shape[0]/2)] + \
-                         self.eta[int(self.eta.shape[0]/2)+1])/2
-        else:
-            etamiddle = self.eta[int(self.n/2+1), :]        
+       
 
         axeta.plot(self.x_v1d, etamiddle)
         axeta.set_title('$\eta$ in the middle of the gyre')
         axeta.set_ylabel('$\eta, m$')
         axeta.set_xlabel('x, m')
 
-        extent = [self.d, self.L, self.L, self.d]
-        plot = axc.imshow(self.eta, extent = extent)
+        extent = [0, self.L, 0, self.L]
+        plot = axc.imshow(self.eta, extent = extent, cmap = 'plasma')
         u_eta = (self.u[:, 1:] + self.u[:, :-1])/2
         v_eta = (self.v[1:, :] + self.v[:-1, :])/2
 
-        axc.streamplot(self.x_eta, np.flip(self.y_eta), -u_eta, v_eta, 
-                       density = 0.5, color = np.sqrt(u_eta**2 + v_eta**2),
-                       cmap = 'gray')
+        streams = axc.streamplot(self.x_eta, np.flip(self.y_eta, axis = 0), 
+                                 np.flip(u_eta, axis = 0), 
+                                 np.flip(v_eta, axis = 0), density = 0.5,
+                                 color = 'white')
+                                 # , 
+                                 # color = np.sqrt(u_eta**2 + v_eta**2),
+                                 # cmap = 'Pastel2')
 
         axc.set_title('$\eta$')
         axc.set_xlabel('x, m')
         axc.set_ylabel('y, m')
-        plt.colorbar(plot, ax=axc, location = 'bottom', shrink = 0.65)
+        # cbar2 = plt.colorbar(streams.lines, ax=axc, location = 'bottom', shrink = 0.65)
+        # cbar2.set_label('$|\mathbf{u}|, ms^{-1}$')
+        cbar = plt.colorbar(plot, ax=axc, location = 'right')
+        cbar.set_label('$\eta, m$')
+
         fig.tight_layout()
         
         
     def plot_energy(self):
-        plt.figure()
-        plt.plot(np.arange(self.nt+1)*self.dt/(24*60*60), self.E_ts)
-
-
+        plt.figure(figsize = (8, 3))
+        plt.ylabel('Energy, J')
+        plt.xlabel('Time, days')
+        plt.plot(np.arange(self.nt_count)*self.dt/(24*60*60), self.E_ts[:self.nt_count])
+    
+    def calc_Ediff(self):      
+        a, b = calc_ab(self.L)
+        U = u_ss(self.x_u, self.y_u, self.L, a, b)
+        V = v_ss(self.x_v, self.y_v, self.L, a, b)
+        ETA = eta_ss(self.x_eta, self.y_eta, self.L, a, b, eta0 = self.eta0())
+        
+        udiff, vdiff, etadiff = self.u-U, self.v-V, ETA-self.eta
+        
+        Ediff = calc_energy(udiff, vdiff, etadiff, self.d)
+        return np.abs(Ediff)
+    def plot_solution_diff(self):
+        a, b = calc_ab(self.L)
+        U = u_ss(self.x_u, self.y_u, self.L, a, b)
+        V = v_ss(self.x_v, self.y_v, self.L, a, b)
+        ETA = eta_ss(self.x_eta, self.y_eta, self.L, a, b, eta0 = self.eta0())
+        
+        udiff, vdiff, etadiff = self.u-U, self.v-V, ETA-self.eta
+        
+        labels = ['$\Delta u$', '$\Delta v$', '$\Delta \eta$']
+        data = [udiff, vdiff, etadiff]
+        
+        fig, axs = plt.subplots(1, 3, figsize = (16, 7), sharey = True)
+        extent = [0, self.L, 0, self.L]
+        axs[0].set_ylabel('Y')
+        
+        for i in range(3):
+            axs[i].set_title(labels[i])
+            axs[i].set_xlabel('X')
+            plot = axs[i].contourf(data[i], extent = extent, cmap = 'plasma')
+            plt.colorbar(plot, location = 'bottom', ax= axs[i])
+        fig.suptitle(f'''Time = {np.round(self.nt_count*self.dt/day,0)} days
+                     $\Delta t = {self.dt}$s, d = {self.d}m''')
+            

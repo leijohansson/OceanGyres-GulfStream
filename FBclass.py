@@ -45,6 +45,7 @@ class FB(model):
                         #function to avoid if statements
             self.E_ts[self.nt_count] = self.calcE()
         
+        
         self.eta -=  H*self.dt*(ddx(self.u, self.d)+ddy(self.v, self.d))
         eta_x, eta_y = ddx(self.eta, self.d), ddy(self.eta, self.d)
         self.v[1:-1, :] += self.dt*(-self.f_v*vu_interp(self.u) - g*eta_y - 
@@ -75,3 +76,26 @@ class FB(model):
         if self.energy: #would it be more efficient to define a different 
                         #function to avoid if statements
             self.E_ts[self.nt_count] = self.calcE()
+    def run_SS(self):
+        '''
+        Runs model to steady-state, where steady-state is determined by the 
+        energy in subsequent time steps having a difference of less than 1J
+
+        Returns
+        -------
+        None.
+
+        '''
+        Ediff = 1000
+        while Ediff > 1:
+            self.FB_time(energy = True)
+            Ediff_frac = (self.E_ts[self.nt_count] - self.E_ts[self.nt_count-1])/self.E_ts[self.nt_count]
+            Ediff = (self.E_ts[self.nt_count] - self.E_ts[self.nt_count-1])
+            if self.nt_count == self.nt:
+                break
+        if self.nt_count == self.nt:
+            print(f'Steady-State not reached in {self.nt} timesteps, \
+                  check for instability or increase nt')
+        else:
+            print(f'Steady-state reached in {self.nt_count} timesteps, \
+                  corresponding to {np.round(self.nt_count*self.dt/day,1)} days')
