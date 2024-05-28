@@ -5,7 +5,6 @@ Created on Thu Feb 29 11:08:56 2024
 @author: Linne
 """
 import numpy as np
-# import jax.numpy as np
 from Params import *
 from numba import njit
 

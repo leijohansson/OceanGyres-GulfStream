@@ -3,9 +3,10 @@
 Created on Tue Mar  5 21:24:02 2024
 
 @author: Linne
+
+Class for Forward Backward time scheme
 """
 from model import *
-from numba import jit, cuda
 from scipy.interpolate import RegularGridInterpolator as interpolater
 from functions import *
 from Params import *

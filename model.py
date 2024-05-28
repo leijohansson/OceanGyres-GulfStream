@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 """
+Base model class
 Created on Wed Feb 28 14:08:02 2024
 
 @author: Linne
 """
 import numpy as np
-# import jax.numpy as np
 from Params import *
 from functions import *
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
 from Analytical import *
+from scipy.interpolate import lagrange
 sns.set_context('notebook')
-sns.set_style('whitegrid')
 class model:
     def __init__(self, L, d, dt, nt, energy = False):
         #setting model parameters
@@ -30,11 +30,7 @@ class model:
         self.u = np.zeros((self.n-1, self.n))
         self.v = self.u.copy().T
         self.eta = np.zeros((self.n-1, self.n-1))
-        
-        ##Perturbed initial condition for eta
-        # halfeta = int(self.eta.shape[0]/2+0.5)
-        # self.eta[halfeta, halfeta] = 10
-        
+                
         #setting up x and y values for plotting and for calculation of coriolis
         #parameter for the different grids
         
@@ -70,19 +66,31 @@ class model:
             energy in joules.
 
         '''
-        E = calc_energy(self.u, self.v, self.eta, self.d)
+        interpu = (self.u[:, 1:] + self.u[:, :-1])/2
+        interpv = (self.v[1:, :] + self.v[:-1, :])/2
+
+        E = calc_energy(interpu, interpv, self.eta, self.d)
+
+        # E = calc_energy(self.u, self.v, self.eta, self.d)
         return E
     
     def eta0(self):
         '''
-
+        Finds eta0 with 3rd order lagrange interpolation
         Returns
         -------
         float
             eta0 value in steady state.
 
         '''
-        return self.eta[-1, int(self.eta.shape[0]/2+0.5)]
+        id_mid = int(self.eta.shape[0]/2)
+        if self.eta.shape[0]%2 == 0:
+            etamids = 0.5*(self.eta[id_mid-1, :] + self.eta[id_mid, :])
+        else:
+            etamids = self.eta[id_mid, :]
+
+        f = lagrange(self.x_v1d[:2], etamids[:2])
+        return f(0)
     
     def plot_uva(self):
         '''
@@ -109,6 +117,8 @@ class model:
                      $\Delta t = {self.dt}$s, d = {self.d}m''')
             
     def plot_1d(self, scheme = 'Forward-Backward', plot_analytical = True):
+        eta0 = self.eta0()
+            
         fig = plt.figure(figsize = (15, 7))
         spec = gridspec.GridSpec(ncols=2, nrows=3, figure=fig, width_ratios = (2,2))
         axu = fig.add_subplot(spec[0, 0])
@@ -120,18 +130,18 @@ class model:
         a, b = calc_ab(self.L)
         U = u_ss(self.x_u, self.y_u, self.L, a, b)
         V = v_ss(self.x_v, self.y_v, self.L, a, b)
-        ETA = eta_ss(self.x_eta, self.y_eta, self.L, a, b, eta0 = self.eta0())
+        ETA = eta_ss(self.x_eta, self.y_eta, self.L, a, b, eta0 = eta0)
     
         axu.plot(self.x_u1d, self.u[-1, :], label = scheme)
         axu.set_title('u at southern boundary')
         axu.set_ylabel('$u, ms^{-1}$')
         axu.set_xlabel('x, m')
         
+        id_mid = int(self.eta.shape[0]/2)
         if self.eta.shape[0]%2 == 0:
-            etamiddle = (self.eta[int(self.eta.shape[0]/2)] + \
-                         self.eta[int(self.eta.shape[0]/2)+1])/2
-            ETAmid = (ETA[int(self.eta.shape[0]/2)] + \
-                         ETA[int(self.eta.shape[0]/2)+1])/2
+            etamiddle = (self.eta[id_mid, :] + self.eta[id_mid-1, :])/2
+            ETAmid = (ETA[id_mid, :] + ETA[id_mid-1,:])/2
+                
         else:
             etamiddle = self.eta[int(self.n/2+1), :]
             ETAmid = ETA[int(self.n/2+1), :]
@@ -141,8 +151,7 @@ class model:
             axv.plot(self.y_v1d, V[:, 0], linestyle = '--', color = 'black')
             axeta.plot(self.x_v1d, ETAmid, linestyle = '--', color = 'black')
             axu.legend()
-
-
+        
         
         axv.plot(self.y_v1d, self.v[:, 0])
         axv.set_title('v at western boundary')
@@ -186,23 +195,32 @@ class model:
         plt.xlabel('Time, days')
         plt.plot(np.arange(self.nt_count)*self.dt/(24*60*60), self.E_ts[:self.nt_count])
     
-    def calc_Ediff(self):      
+    def calc_Ediff(self):
+        eta0 = self.eta0()
         a, b = calc_ab(self.L)
         U = u_ss(self.x_u, self.y_u, self.L, a, b)
         V = v_ss(self.x_v, self.y_v, self.L, a, b)
-        ETA = eta_ss(self.x_eta, self.y_eta, self.L, a, b, eta0 = self.eta0())
+        # U = u_ss(self.x_eta, self.y_eta, self.L, a, b)
+        # V = v_ss(self.x_eta, self.y_eta, self.L, a, b)
+        ETA = eta_ss(self.x_eta, self.y_eta, self.L, a, b, eta0 = eta0)
         
-        udiff, vdiff, etadiff = self.u-U, self.v-V, ETA-self.eta
+        
+        # interpu = (self.u[:, 1:] + self.u[:, :-1])/2
+        # interpv = (self.v[1:, :] + self.v[:-1, :])/2
+        # udiff, vdiff, etadiff = interpu-U, interpv-V, self.eta-ETA
+        udiff, vdiff, etadiff = self.u-U, self.v-V, self.eta-ETA
+       
         
         Ediff = calc_energy(udiff, vdiff, etadiff, self.d)
         return np.abs(Ediff)
+    
     def plot_solution_diff(self):
         a, b = calc_ab(self.L)
         U = u_ss(self.x_u, self.y_u, self.L, a, b)
         V = v_ss(self.x_v, self.y_v, self.L, a, b)
         ETA = eta_ss(self.x_eta, self.y_eta, self.L, a, b, eta0 = self.eta0())
         
-        udiff, vdiff, etadiff = self.u-U, self.v-V, ETA-self.eta
+        udiff, vdiff, etadiff = self.u-U, self.v-V, self.eta-ETA
         
         labels = ['$\Delta u$', '$\Delta v$', '$\Delta \eta$']
         data = [udiff, vdiff, etadiff]
@@ -215,7 +233,20 @@ class model:
             axs[i].set_title(labels[i])
             axs[i].set_xlabel('X')
             plot = axs[i].contourf(data[i], extent = extent, cmap = 'plasma')
-            plt.colorbar(plot, location = 'bottom', ax= axs[i])
+            cbar = plt.colorbar(plot, location = 'bottom', ax= axs[i])
+            cbar.formatter.set_powerlimits((0, 0))
         fig.suptitle(f'''Time = {np.round(self.nt_count*self.dt/day,0)} days
                      $\Delta t = {self.dt}$s, d = {self.d}m''')
+                     
+    def calc_KEdiff(self):
+        # eta0 = self.eta0()
+        a, b = calc_ab(self.L)
+        U = u_ss(self.x_u, self.y_u, self.L, a, b)
+        V = v_ss(self.x_v, self.y_v, self.L, a, b)
+        # ETA = eta_ss(self.x_eta, self.y_eta, self.L, a, b, eta0 = eta0)
+        
+        udiff, vdiff, etadiff = self.u-U, self.v-V, 0
+        
+        Ediff = calc_energy(udiff, vdiff, etadiff, self.d)
+        return np.abs(Ediff)
             

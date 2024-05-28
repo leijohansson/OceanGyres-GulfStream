@@ -14,6 +14,24 @@ from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 
 def make_L(n, dt, d):
+    '''
+    make the L matrix for semi implicit
+
+    Parameters
+    ----------
+    n : int
+        length of eta grid (how many grid points in 1d).
+    dt : float
+        timestep in seconds.
+    d : float
+        grid spacing.
+
+    Returns
+    -------
+    L : array
+        n^2 by n^2 matrix.
+
+    '''
     #calculating mu term (d in the notes)
     ngrids = n**2
     mu = (dt/d)**2*g*H
@@ -168,6 +186,14 @@ class SemiImplicit(model):
         self.F = C - self.dt*H*(dAdx + dBdy)
     
     def one_step(self):
+        '''
+        Moves model one timestep
+
+        Returns
+        -------
+        None.
+
+        '''
         self.calcABF()
         #1D version of F 
         F_1d = flat(self.F)
@@ -184,6 +210,14 @@ class SemiImplicit(model):
             self.E_ts[self.nt_count] = self.calcE()
 
     def run(self):
+        '''
+        Runs model to nt timesteps
+
+        Returns
+        -------
+        None.
+
+        '''
         while self.nt_count < self.nt:
             self.one_step()
 

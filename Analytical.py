@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+Analytical solution
 Created on Thu Feb 22 13:35:12 2024
 
 @author: Linne
@@ -144,6 +145,8 @@ def v_ss(x, y, L, a, b):
     '''
     v = tau0/(np.pi*gamma*rho*H)*f2(x/L, a, b)*np.sin(np.pi*y/L)
     return v
+
+
 def eta_ss(x, y, L, a, b, eta0 = 0):
     '''
     Analytical solution for u in the steady state
@@ -175,6 +178,7 @@ def eta_ss(x, y, L, a, b, eta0 = 0):
     eta = eta0 + tau0*f0*L/(np.pi*gamma*rho*H*g)*(term1+term2)
     return eta
     
+
 def plot_analytical(L, d):
     x_1D = np.arange(0, L+0.1, d)
     y_1D = np.arange(L, 0-0.1, -d)
@@ -200,3 +204,9 @@ def plot_analytical(L, d):
         axs[i].set_xlabel('X')
         plot = axs[i].imshow(data[i], extent = extent, cmap = 'plasma')
         plt.colorbar(plot, location = 'bottom', ax= axs[i])
+    streams = axs[2].streamplot(XX, np.flip(YY, axis = 0), 
+                             np.flip(U, axis = 0), 
+                             np.flip(V, axis = 0), density = 0.5,
+                             color = 'white')
+    axs[2].set_ylim(0, L)
+    axs[2].set_xlim(0, L)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+Parameters kept constant across all models
 Created on Thu Feb 22 13:35:38 2024
 
 @author: Linne

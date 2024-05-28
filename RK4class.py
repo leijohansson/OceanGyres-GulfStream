@@ -3,6 +3,8 @@
 Created on Thu Apr  4 15:28:51 2024
 
 @author: Linne
+
+Class for RK4
 """
 
 from model import model
@@ -11,6 +13,27 @@ from functions import *
 
 class RK4(model):
     def __init__(self, L, d, dt, nt, energy = False):
+        '''
+        Initialising model
+
+        Parameters
+        ----------
+        L : float
+            Length of domain.
+        d : float
+            gridsize.
+        dt : float
+            timestep.
+        nt : int
+            number of timesteps.
+        energy : Bool, optional
+            whether to record energy at each timestep. The default is False.
+
+        Returns
+        -------
+        None.
+
+        '''
         #initialise model
         super().__init__(L, d, dt, nt)
         
@@ -18,23 +41,87 @@ class RK4(model):
 
         
     def F_eta(self, u, v, eta):
+        '''
+        Calculates deta/dt
+
+        Parameters
+        ----------
+        u : array
+            array of u values on u grid.
+        v : array
+            array of v values on v grid.
+        eta : array
+            array of eta values on eta grid.
+
+        Returns
+        -------
+        F : array
+            deta/dt on eta grid.
+
+        '''
         dudx = ddx(u, self.d)
         dvdy = ddy(v, self.d)
         F = -H*(dudx+dvdy)
         return F
     
     def F_u(self, u, v, eta):
+        '''
+        Calculates du/dt
+
+        Parameters
+        ----------
+        u : array
+            array of u values on u grid.
+        v : array
+            array of v values on v grid.
+        eta : array
+            array of eta values on eta grid.
+
+        Returns
+        -------
+        F : array
+            du/dt on eta grid.
+
+        '''
         eta_x = ddx(eta, self.d)
         F = self.f_u*vu_interp(v) - g*eta_x - gamma*crop_x(u) \
             + self.taux/(rho*H)
         return F
     
     def F_v(self, u, v, eta):
+        '''
+        Calculates dv/dt
+
+        Parameters
+        ----------
+        u : array
+            array of u values on u grid.
+        v : array
+            array of v values on v grid.
+        eta : array
+            array of eta values on eta grid.
+
+        Returns
+        -------
+        F : array
+            dv/dt on eta grid.
+
+        '''
         eta_y = ddy(eta, self.d)
         F = -self.f_v*vu_interp(u) - g*eta_y - gamma*crop_y(v) \
             + self.tauy/(rho*H)
         return F
+    
+    
     def one_step(self):
+        '''
+        Moves model one timestep
+
+        Returns
+        -------
+        None.
+
+        '''
         k = [0]*4
         l = [0]*4
         m = [0]*4
@@ -76,6 +163,14 @@ class RK4(model):
         
         
     def run(self):
+        '''
+        Runs model for nt timesteps
+
+        Returns
+        -------
+        None.
+
+        '''
         for i in range(self.nt):
             self.one_step()
         
